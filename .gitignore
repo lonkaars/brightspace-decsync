@@ -1,0 +1,5 @@
+config.json
+
+# python files
+venv/
+__pycache__/

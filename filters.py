@@ -13,3 +13,9 @@ def tag_gen(input_str):
   input_str = re.sub(r'\s+', ' ', input_str)
   return input_str.strip()
   
+def title_filter(input_str):
+  input_str = input_str.lower()
+  input_str = re.sub(r'- due', '', input_str)
+  input_str = re.sub(r'- available', '', input_str)
+  input_str = re.sub(r'- availability ends', '', input_str)
+  return input_str.strip()

@@ -2,10 +2,11 @@
 
 from libdecsync import Decsync
 from icalendar import Calendar, Todo
-from taggen import tag_gen
 from datetime import datetime
 from uuid import uuid4
+import filters
 import time
+import re
 import json
 import os
 import requests
@@ -23,6 +24,10 @@ def get_brightspace_events(config):
   cal = Calendar.from_ical(request.text)
   return list(cal.walk('vevent'))
 
+def description_parser(desc):
+  return (re.sub(r'\n\nView event - (.+)', r'[view event](\1)', desc),
+  re.sub(r'View event - (.+)', r'\1', desc))
+
 def create_task_ical(event):
   cal = Calendar()
   todo = Todo()
@@ -32,17 +37,18 @@ def create_task_ical(event):
   todo.add("priority", 9)
   todo.add("status", "needs-action")
 
-  tag = tag_gen(event.get('location'))
+  tag = filters.tag_gen(event.get('location'))
   if tag: todo.add("categories", [tag])
 
   todo.add("created", datetime.now())
+  todo.add("due", event.decoded('dtstart'))
+  todo.add("summary", filters.title_filter(str(event.decoded('summary'), 'utf-8')))
 
-  todo.add("dtstamp", event.decoded('dtstart'))
-  todo.add("uid", uuid4())
-
-  todo.add("summary", event.decoded('summary'))
-  description = event.get('description')
-  if description: todo.add("description", description)
+  desctext = event.get('description')
+  if not desctext: return None
+  description, uid = description_parser(desctext)
+  todo.add("description", description)
+  todo.add("uid", description)
 
   cal.add_component(todo)
   return cal.to_ical()
@@ -50,7 +56,9 @@ def create_task_ical(event):
 def task_handler(config, ds, event):
   epoch = time.time()
   timestamp = f"{int(epoch)}{int((epoch % 1) * 10 ** 9)}"
-  ds.set_entry(["resources", timestamp], None, str(create_task_ical(event), 'utf-8'))
+  ical = create_task_ical(event)
+  if not ical: return
+  ds.set_entry(["resources", timestamp], str(event.decoded('uid'), 'utf-8'), str(ical, 'utf-8'))
 
 def main():
   config = load_config()

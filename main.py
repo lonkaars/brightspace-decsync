@@ -48,17 +48,16 @@ def create_task_ical(event):
   if not desctext: return None
   description, uid = description_parser(desctext)
   todo.add("description", description)
-  todo.add("uid", description)
+  todo.add("uid", uid)
 
   cal.add_component(todo)
-  return cal.to_ical()
+  return (cal.to_ical(), uid)
 
 def task_handler(config, ds, event):
-  epoch = time.time()
-  timestamp = f"{int(epoch)}{int((epoch % 1) * 10 ** 9)}"
-  ical = create_task_ical(event)
-  if not ical: return
-  ds.set_entry(["resources", timestamp], str(event.decoded('uid'), 'utf-8'), str(ical, 'utf-8'))
+  temp = create_task_ical(event)
+  if not temp: return
+  ical, uid = temp
+  ds.set_entry(["resources", uid], str(event.decoded('uid'), 'utf-8'), str(ical, 'utf-8'))
 
 def main():
   config = load_config()

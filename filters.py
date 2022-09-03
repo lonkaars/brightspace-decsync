@@ -2,6 +2,7 @@ import re
 
 def tag_gen(input_str):
   input_str = input_str.lower()
+  input_str = re.sub(r'studieloopbaanbegeleiding.*', 'studieloopbaanbegeleiding', input_str)
   input_str = re.sub(r'aii', '', input_str)
   input_str = re.sub(r'atd', '', input_str)
   input_str = re.sub(r'et\/ti', '', input_str)
